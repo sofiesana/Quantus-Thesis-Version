@@ -286,7 +286,7 @@ class IROF(Metric[List[float]]):
         """
         # Predict on x.
         x_input = model.shape_input(x, x.shape, channel_first=True)
-        y_pred = model.predict(x_input)[:, y].astype(np.float).sum()
+        y_pred = model.predict(x_input)[:, y].astype(float).sum()
 
         # Segment image.
         segments = utils.get_superpixel_segments(
@@ -322,7 +322,7 @@ class IROF(Metric[List[float]]):
 
             # Predict on perturbed input x.
             x_input = model.shape_input(x_perturbed, x.shape, channel_first=True)
-            y_pred_perturb = model.predict(x_input)[:, y].astype(np.float).sum()
+            y_pred_perturb = model.predict(x_input)[:, y].astype(float).sum()
 
             # Normalise the scores to be within range [0, 1].
             preds.append(float(y_pred_perturb / y_pred))
