@@ -314,13 +314,12 @@ class IROF(Metric[List[float]]):
         for i_ix, s_ix in enumerate(s_indices):
             # Move x_prev_perturbed to CPU and convert to NumPy array for perturbation
             x_prev_perturbed_cpu = x_prev_perturbed.cpu().numpy()
-            x_prev_perturbed_gpu = x_prev_perturbed.gpu().numpy()
 
             # Perturb input by indices of attributions.
             a_ix = np.nonzero((segments == s_ix).flatten())[0]
 
             x_perturbed = self.perturb_func(
-                arr=x_prev_perturbed_gpu,
+                arr=x_prev_perturbed_cpu,
                 indices=a_ix,
                 indexed_axes=self.a_axes,
             )
@@ -329,15 +328,15 @@ class IROF(Metric[List[float]]):
             )
 
             # Convert x_perturbed back to a PyTorch tensor and move to GPU
-            # x_perturbed_tensor = torch.from_numpy(x_perturbed).to(x.device)
+            x_perturbed_tensor = torch.from_numpy(x_perturbed).to(x.device)
 
             # Predict on perturbed input x.
-            x_input = model.shape_input(x_perturbed, x_perturbed.shape, channel_first=True)
+            x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
             y_pred_perturb = model.predict(x_input)[:, y].astype(float).sum()
 
             # Normalize the scores to be within range [0, 1].
             preds.append(float(y_pred_perturb / y_pred))
-            x_prev_perturbed = x_perturbed
+            x_prev_perturbed = x_perturbed_tensor
 
         # Calculate the area over the curve (AOC) score.
         aoc = len(preds) - utils.calculate_auc(np.array(preds))
