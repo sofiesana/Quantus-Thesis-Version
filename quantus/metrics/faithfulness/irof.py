@@ -291,11 +291,10 @@ class IROF(Metric[List[float]]):
 
         # Move x to CPU and convert to NumPy array for segmentation
         cpu_numpy_x = x.cpu().numpy()
-        gpu_numpy_x = x
 
         # Segment image.
         segments = utils.get_superpixel_segments(
-            img=np.moveaxis(gpu_numpy_x, 0, -1).astype("double"),
+            img=np.moveaxis(cpu_numpy_x, 0, -1).astype("double"),
             segmentation_method=self.segmentation_method,
         )
         nr_segments = len(np.unique(segments))
