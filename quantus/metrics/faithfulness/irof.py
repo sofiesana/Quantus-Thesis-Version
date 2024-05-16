@@ -9,6 +9,7 @@ import sys
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
+import torch
 
 from quantus.functions.perturb_func import baseline_replacement_by_indices
 from quantus.helpers import asserts, utils, warn
@@ -262,7 +263,7 @@ class IROF(Metric[List[float]]):
     def evaluate_instance(
         self,
         model: ModelInterface,
-        x: np.ndarray,
+        x: torch.Tensor,
         y: np.ndarray,
         a: np.ndarray,
     ) -> float:
@@ -272,9 +273,9 @@ class IROF(Metric[List[float]]):
         Parameters
         ----------
         model: ModelInterface
-            A ModelInteface that is subject to explanation.
-        x: np.ndarray
-            The input to be evaluated on an instance-basis.
+            A ModelInterface that is subject to explanation.
+        x: torch.Tensor
+            The input to be evaluated on an instance-basis. Already on GPU.
         y: np.ndarray
             The output to be evaluated on an instance-basis.
         a: np.ndarray
@@ -288,7 +289,9 @@ class IROF(Metric[List[float]]):
         x_input = model.shape_input(x, x.shape, channel_first=True)
         y_pred = model.predict(x_input)[:, y].astype(float).sum()
 
+        # Move x to CPU and convert to NumPy array for segmentation
         cpu_numpy_x = x.cpu().numpy()
+
         # Segment image.
         segments = utils.get_superpixel_segments(
             img=np.moveaxis(cpu_numpy_x, 0, -1).astype("double"),
@@ -309,27 +312,31 @@ class IROF(Metric[List[float]]):
         x_prev_perturbed = x
 
         for i_ix, s_ix in enumerate(s_indices):
-            x_prev_perturbed = x_prev_perturbed.cpu().numpy()
+            # Move x_prev_perturbed to CPU and convert to NumPy array for perturbation
+            x_prev_perturbed_cpu = x_prev_perturbed.cpu().numpy()
 
             # Perturb input by indices of attributions.
             a_ix = np.nonzero((segments == s_ix).flatten())[0]
 
             x_perturbed = self.perturb_func(
-                arr=x_prev_perturbed,
+                arr=x_prev_perturbed_cpu,
                 indices=a_ix,
                 indexed_axes=self.a_axes,
             )
             warn.warn_perturbation_caused_no_change(
-                x=x_prev_perturbed, x_perturbed=x_perturbed
+                x=x_prev_perturbed_cpu, x_perturbed=x_perturbed
             )
 
+            # Convert x_perturbed back to a PyTorch tensor and move to GPU
+            x_perturbed_tensor = torch.from_numpy(x_perturbed).to(x.device)
+
             # Predict on perturbed input x.
-            x_input = model.shape_input(x_perturbed, x.shape, channel_first=True)
+            x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
             y_pred_perturb = model.predict(x_input)[:, y].astype(float).sum()
 
-            # Normalise the scores to be within range [0, 1].
+            # Normalize the scores to be within range [0, 1].
             preds.append(float(y_pred_perturb / y_pred))
-            x_prev_perturbed = x_perturbed
+            x_prev_perturbed = x_perturbed_tensor
 
         # Calculate the area over the curve (AOC) score.
         aoc = len(preds) - utils.calculate_auc(np.array(preds))
