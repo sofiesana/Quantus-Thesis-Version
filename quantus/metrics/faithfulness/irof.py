@@ -309,8 +309,8 @@ class IROF(Metric[List[float]]):
         x_prev_perturbed = x
 
         for i_ix, s_ix in enumerate(s_indices):
-            x_prev_perturbed = x_prev_perturbed.cpu()
-            
+            x_prev_perturbed = x_prev_perturbed.cpu().numpy()
+
             # Perturb input by indices of attributions.
             a_ix = np.nonzero((segments == s_ix).flatten())[0]
 
