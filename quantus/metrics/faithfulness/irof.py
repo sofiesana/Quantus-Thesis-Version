@@ -307,6 +307,7 @@ class IROF(Metric[List[float]]):
 
         preds = []
         x_prev_perturbed = x
+        x_prev_perturbed.cpu()
 
         for i_ix, s_ix in enumerate(s_indices):
             # Perturb input by indices of attributions.
