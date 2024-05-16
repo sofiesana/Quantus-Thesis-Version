@@ -288,9 +288,10 @@ class IROF(Metric[List[float]]):
         x_input = model.shape_input(x, x.shape, channel_first=True)
         y_pred = model.predict(x_input)[:, y].astype(float).sum()
 
+        cpu_numpy_x = x.cpu().numpy()
         # Segment image.
         segments = utils.get_superpixel_segments(
-            img=np.moveaxis(x, 0, -1).astype("double"),
+            img=np.moveaxis(cpu_numpy_x, 0, -1).astype("double"),
             segmentation_method=self.segmentation_method,
         )
         nr_segments = len(np.unique(segments))
