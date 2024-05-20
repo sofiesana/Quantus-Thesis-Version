@@ -381,13 +381,12 @@ class IROF(Metric[List[float]]):
         tmpdir = os.environ.get('TMPDIR')
         results_dir = os.path.join(tmpdir, 'results')
 
-        plt.figure()
-        plt.plot(range(len(preds)), preds, marker='o')
-        plt.title('AOC Curve')
-        plt.xlabel('Number of Segments Removed')
-        plt.ylabel('Class' + self.class_name + ' Score')
-        plt.grid(True)
-        plt.savefig(results_dir + '/' + self.class_name + '_irof.png')
+        # plt.plot(range(len(preds)), preds, marker='o')
+        # plt.title('AOC Curve')
+        # plt.xlabel('Number of Segments Removed')
+        # plt.ylabel('Class' + self.class_name + ' Score')
+        # plt.grid(True)
+        # plt.savefig(results_dir + '/' + self.class_name + '_irof.png')
 
         return aoc
 
