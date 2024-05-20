@@ -6,10 +6,12 @@
 # You should have received a copy of the GNU Lesser General Public License along with Quantus. If not, see <https://www.gnu.org/licenses/>.
 # Quantus project URL: <https://github.com/understandable-machine-intelligence-lab/Quantus>.
 import sys
+import os
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import torch
+import matplotlib as plt
 
 from quantus.functions.perturb_func import baseline_replacement_by_indices
 from quantus.helpers import asserts, utils, warn
@@ -76,6 +78,9 @@ class IROF(Metric[List[float]]):
         default_plot_func: Optional[Callable] = None,
         disable_warnings: bool = False,
         display_progressbar: bool = False,
+        class_category: int = None,
+        num_classes: int = 1,
+        class_name: str = "Class",
         **kwargs,
     ):
         """
@@ -130,6 +135,9 @@ class IROF(Metric[List[float]]):
             perturb_func = baseline_replacement_by_indices
 
         # Save metric-specific attributes.
+        self.num_classes = num_classes
+        self.class_category = class_category
+        self. class_name = class_name
         self.segmentation_method = segmentation_method
         self.nr_channels = None
         self.perturb_func = make_perturb_func(
@@ -260,6 +268,29 @@ class IROF(Metric[List[float]]):
             **kwargs,
         )
 
+    def get_y_pred(self, model, x_input):
+        y_pred = model.predict(x_input)
+        
+        # reshape predictions and flatten
+        y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
+        new_shape = y_pred.shape[-2:]
+
+        # reshape labels and flatten
+        y_resized = F.interpolate(y, size=new_shape)
+        y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
+        y = y.long()
+
+        # filter to only keep pixels of class of interest
+        class_category_mask = (y == self.class_category)
+        filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
+        y_pred = filtered_pred[class_category_mask]
+        
+        # get average score
+        y_pred = y_pred.detach().cpu().numpy()
+        y_pred = np.mean(y_pred)
+        
+        return y_pred
+
     def evaluate_instance(
         self,
         model: ModelInterface,
@@ -287,7 +318,7 @@ class IROF(Metric[List[float]]):
         """
         # Predict on x.
         x_input = model.shape_input(x, x.shape, channel_first=True)
-        y_pred = model.predict(x_input)[:, y].astype(float).sum()
+        y_pred = self.get_y_pred(model, x_input)
 
         # Move x to CPU and convert to NumPy array for segmentation
         cpu_numpy_x = x.cpu().numpy()
@@ -332,7 +363,7 @@ class IROF(Metric[List[float]]):
 
             # Predict on perturbed input x.
             x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
-            y_pred_perturb = model.predict(x_input)[:, y].astype(float).sum()
+            y_pred_perturb = self.get_y_pred(model, x_input)
 
             # Normalize the scores to be within range [0, 1].
             preds.append(float(y_pred_perturb / y_pred))
@@ -340,6 +371,19 @@ class IROF(Metric[List[float]]):
 
         # Calculate the area over the curve (AOC) score.
         aoc = len(preds) - utils.calculate_auc(np.array(preds))
+
+        # Get the value of the TMPDIR environment variable
+        tmpdir = os.environ.get('TMPDIR')
+        results_dir = os.path.join(tmpdir, 'results')
+
+        plt.figure()
+        plt.plot(range(len(preds)), preds, marker='o')
+        plt.title('AOC Curve')
+        plt.xlabel('Number of Segments Removed')
+        plt.ylabel('Class' + self.class_name + ' Score')
+        plt.grid(True)
+        plt.savefig(results_dir + '/' + self.class_name + '_irof.png')
+
         return aoc
 
     def custom_preprocess(
