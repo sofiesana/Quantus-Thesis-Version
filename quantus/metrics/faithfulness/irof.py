@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 import numpy as np
 import torch
 import matplotlib as plt
+import torch.nn.functional as F
 
 from quantus.functions.perturb_func import baseline_replacement_by_indices
 from quantus.helpers import asserts, utils, warn
