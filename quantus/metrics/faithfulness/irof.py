@@ -271,15 +271,13 @@ class IROF(Metric[List[float]]):
 
     def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
-        print(type(y))
-        print(y.shape)
-        print(y)
+        
         # reshape predictions and flatten
         y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
         new_shape = y_pred.shape[-2:]
 
-        # reshape labels and flatte
-        y_resized = F.interpolate(y, size=new_shape)
+        # reshape labels and flatten
+        y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.long()
 
