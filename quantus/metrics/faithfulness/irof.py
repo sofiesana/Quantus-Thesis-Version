@@ -269,7 +269,7 @@ class IROF(Metric[List[float]]):
         )
 
     def get_y_pred(self, model, x_input):
-        y_pred = model.predict(x_input)
+        y_pred = model(x_input)
         
         # reshape predictions and flatten
         y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
