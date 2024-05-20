@@ -268,7 +268,7 @@ class IROF(Metric[List[float]]):
             **kwargs,
         )
 
-    def get_y_pred(self, model, x_input):
+    def get_y_pred(self, model, x_input, device):
         y_pred = model(x_input)
         
         # reshape predictions and flatten
@@ -316,9 +316,11 @@ class IROF(Metric[List[float]]):
         float
             The evaluation results.
         """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # Predict on x.
-        x_input = model.shape_input(x, x.shape, channel_first=True)
-        y_pred = self.get_y_pred(model, x_input)
+        model.to(device)
+        x_input = model.shape_input(x, x.shape, channel_first=True).to(device)
+        y_pred = self.get_y_pred(model, x_input, device)
 
         # Move x to CPU and convert to NumPy array for segmentation
         cpu_numpy_x = x.cpu().numpy()
