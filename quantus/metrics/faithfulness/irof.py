@@ -280,10 +280,11 @@ class IROF(Metric[List[float]]):
         y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.long()
-        y = y.cpu()
+        y = y.cpu().numpy()
 
         # filter to only keep pixels of class of interest
         class_category_mask = (y == self.class_category)
+        y[y == 255] = 0
         filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
         y_pred = filtered_pred[class_category_mask]
         
