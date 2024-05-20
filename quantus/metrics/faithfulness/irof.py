@@ -271,7 +271,7 @@ class IROF(Metric[List[float]]):
 
     def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
-        
+
         # reshape predictions and flatten
         y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
         new_shape = y_pred.shape[-2:]
@@ -280,6 +280,7 @@ class IROF(Metric[List[float]]):
         y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.long()
+        y = y.cpu()
 
         # filter to only keep pixels of class of interest
         class_category_mask = (y == self.class_category)
