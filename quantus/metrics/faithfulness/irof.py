@@ -268,11 +268,11 @@ class IROF(Metric[List[float]]):
             **kwargs,
         )
 
-    def get_y_pred(self, model, x_input, device):
-        y_pred = model(x_input)
+    def get_y_pred(self, model, x_input):
+        y_pred = model.predict(x_input)
         
         # reshape predictions and flatten
-        y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
+        y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
         new_shape = y_pred.shape[-2:]
 
         # reshape labels and flatten
@@ -286,7 +286,6 @@ class IROF(Metric[List[float]]):
         y_pred = filtered_pred[class_category_mask]
         
         # get average score
-        y_pred = y_pred.detach().cpu().numpy()
         y_pred = np.mean(y_pred)
         
         return y_pred
@@ -316,11 +315,9 @@ class IROF(Metric[List[float]]):
         float
             The evaluation results.
         """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # Predict on x.
-        model.to(device)
-        x_input = model.shape_input(x, x.shape, channel_first=True).to(device)
-        y_pred = self.get_y_pred(model, x_input, device)
+        # Predict on x.        
+        x_input = model.shape_input(x, x.shape, channel_first=True)
+        y_pred = self.get_y_pred(model, x_input)
 
         # Move x to CPU and convert to NumPy array for segmentation
         cpu_numpy_x = x.cpu().numpy()
