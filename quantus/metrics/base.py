@@ -289,7 +289,8 @@ class Metric(Generic[R]):
         for d_ix, data_batch in enumerate(batch_generator):
             data_batch = self.batch_preprocess(data_batch)
             result = self.evaluate_batch(**data_batch)
-            self.evaluation_scores.extend(result)
+            if result is not None:
+                self.evaluation_scores.extend(result)
 
         # Call post-processing.
         self.custom_postprocess(**data)

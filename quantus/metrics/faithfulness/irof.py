@@ -277,6 +277,7 @@ class IROF(Metric[List[float]]):
         new_shape = y_pred.shape[-2:]
 
         # reshape labels and flatten
+        y = torch.from_numpy(y)
         y_resized = F.interpolate(y, size=new_shape)
         y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.long()
@@ -316,6 +317,9 @@ class IROF(Metric[List[float]]):
         float
             The evaluation results.
         """
+        if self.class_category not in y:
+            return None
+
         # Predict on x.        
         x_input = model.shape_input(x, x.shape, channel_first=True)
         y_pred = self.get_y_pred(model, x_input, y)
