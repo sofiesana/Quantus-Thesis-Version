@@ -269,7 +269,7 @@ class IROF(Metric[List[float]]):
             **kwargs,
         )
 
-    def get_y_pred(self, model, x_input):
+    def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
         
         # reshape predictions and flatten
@@ -318,7 +318,7 @@ class IROF(Metric[List[float]]):
         """
         # Predict on x.        
         x_input = model.shape_input(x, x.shape, channel_first=True)
-        y_pred = self.get_y_pred(model, x_input)
+        y_pred = self.get_y_pred(model, x_input, y)
 
         # Move x to CPU and convert to NumPy array for segmentation
         cpu_numpy_x = x.cpu().numpy()
@@ -363,7 +363,7 @@ class IROF(Metric[List[float]]):
 
             # Predict on perturbed input x.
             x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
-            y_pred_perturb = self.get_y_pred(model, x_input)
+            y_pred_perturb = self.get_y_pred(model, x_input, y)
 
             # Normalize the scores to be within range [0, 1].
             preds.append(float(y_pred_perturb / y_pred))
