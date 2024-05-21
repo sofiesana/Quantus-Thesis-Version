@@ -454,4 +454,4 @@ class IROF(Metric[List[float]]):
             score, history = self.evaluate_instance(model=model, x=x, y=y, a=a)
             scores.extend(score)
             histories.extend(history)
-            return scores, histories
+        return scores, histories
