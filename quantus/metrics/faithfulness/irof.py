@@ -271,13 +271,14 @@ class IROF(Metric[List[float]]):
 
     def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
+        y_pred = torch.from_numpy(y_pred)
         y_pred = F.softmax(y_pred, dim = 1)
 
         # reshape predictions and flatten
-        y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
-        new_shape = y_pred.shape[-2:]
+        y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
 
         # reshape labels and flatten
+        new_shape = y_pred.shape[-2:]
         y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.long()
@@ -288,6 +289,7 @@ class IROF(Metric[List[float]]):
         y[y == 255] = 0
         filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
         y_pred = filtered_pred[class_category_mask]
+        y_pred = y_pred.cpu().numpy()
         
         # get average score
         y_pred = np.mean(y_pred)
