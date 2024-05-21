@@ -271,6 +271,7 @@ class IROF(Metric[List[float]]):
 
     def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
+        y_pred = F.softmax(y_pred, dim = 1)
 
         # reshape predictions and flatten
         y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
