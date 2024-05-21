@@ -289,7 +289,7 @@ class IROF(Metric[List[float]]):
         y[y == 255] = 0
         filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
         y_pred = filtered_pred[class_category_mask]
-        y_pred = y_pred.cpu().numpy()
+        y_pred = y_pred.cpu
         
         # get average score
         y_pred = np.mean(y_pred)
