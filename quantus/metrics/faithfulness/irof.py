@@ -381,18 +381,7 @@ class IROF(Metric[List[float]]):
         # Calculate the area over the curve (AOC) score.
         aoc = len(preds) - utils.calculate_auc(np.array(preds))
 
-        # Get the value of the TMPDIR environment variable
-        tmpdir = os.environ.get('TMPDIR')
-        results_dir = os.path.join(tmpdir, 'results')
-
-        plt.plot(range(len(preds)), preds, marker='o')
-        plt.title('AOC Curve')
-        plt.xlabel('Number of Segments Removed')
-        plt.ylabel('Class' + self.class_name + ' Score')
-        plt.grid(True)
-        plt.savefig(results_dir + '/' + self.class_name + '_irof.png')
-
-        return aoc
+        return aoc, preds
 
     def custom_preprocess(
         self,

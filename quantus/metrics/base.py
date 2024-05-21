@@ -162,6 +162,7 @@ class Metric(Generic[R]):
 
         self.evaluation_scores = []
         self.all_evaluation_scores = []
+        self.histories = []
 
     @no_type_check
     def __call__(
@@ -288,9 +289,10 @@ class Metric(Generic[R]):
         self.evaluation_scores = []
         for d_ix, data_batch in enumerate(batch_generator):
             data_batch = self.batch_preprocess(data_batch)
-            result = self.evaluate_batch(**data_batch)
+            result, history = self.evaluate_batch(**data_batch)
             if result is not None:
                 self.evaluation_scores.extend(result)
+                self.histories.extend(history)
 
         # Call post-processing.
         self.custom_postprocess(**data)
@@ -315,7 +317,7 @@ class Metric(Generic[R]):
         # Append the content of the last results to all results.
         self.all_evaluation_scores.extend(self.evaluation_scores)
 
-        return self.evaluation_scores  # type: ignore
+        return self.evaluation_scores, self.histories  # type: ignore
 
     @abstractmethod
     @no_type_check
