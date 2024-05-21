@@ -448,7 +448,10 @@ class IROF(Metric[List[float]]):
         scores_batch:
             The evaluation results.
         """
-        return [
-            self.evaluate_instance(model=model, x=x, y=y, a=a)
-            for x, y, a in zip(x_batch, y_batch, a_batch)
-        ]
+        scores = []
+        histories = []
+        for x, y, a in zip(x_batch, y_batch, a_batch):
+            score, history = self.evaluate_instance(model=model, x=x, y=y, a=a)
+            scores.extend(score)
+            histories.extend(history)
+            return scores, histories
