@@ -292,6 +292,7 @@ class Metric(Generic[R]):
             result, history = self.evaluate_batch(**data_batch)
             print("result:", result)
             if result is not None:
+                print("result was added")
                 self.evaluation_scores.extend(result)
                 self.histories.extend(history)
 
