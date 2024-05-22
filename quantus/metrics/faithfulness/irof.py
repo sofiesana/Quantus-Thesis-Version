@@ -323,7 +323,7 @@ class IROF(Metric[List[float]]):
         """
         if self.class_category not in y:
             print(self.class_name + ' does not exist in this image')
-            return None
+            return None, None
 
         # Predict on x.        
         x_input = model.shape_input(x, x.shape, channel_first=True)
