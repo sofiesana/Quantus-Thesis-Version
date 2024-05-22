@@ -452,6 +452,7 @@ class IROF(Metric[List[float]]):
         histories = []
         for x, y, a in zip(x_batch, y_batch, a_batch):
             score, history = self.evaluate_instance(model=model, x=x, y=y, a=a)
-            scores.append(score)
-            histories.append(history)
+            if score is not None:
+                scores.append(score)
+                histories.append(history)
         return scores, histories
