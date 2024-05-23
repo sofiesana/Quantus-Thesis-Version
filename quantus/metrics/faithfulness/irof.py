@@ -289,7 +289,7 @@ class IROF(Metric[List[float]]):
         # y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y_resized = y
         # y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
-        y = y.permute(1, 0).contiguous().view(-1)
+        y = y.contiguous().view(-1)
         print("y shape permuted:", y.shape)
         y = y.long()
         y = y.cpu().numpy()
