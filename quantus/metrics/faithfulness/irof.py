@@ -279,6 +279,7 @@ class IROF(Metric[List[float]]):
         print("y_pred shape:", y_pred.shape)
         print("y_pred:", y_pred)
         y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
+        print("y_pred_reshaped shape:", y_pred_reshaped.shape)
 
         print("y shape:", y.shape)
         print("y shape:", y)
@@ -289,6 +290,7 @@ class IROF(Metric[List[float]]):
         y_resized = y
         # y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.permute(1, 0).contiguous().view(-1)
+        print("y shape permuted:", y.shape)
         y = y.long()
         y = y.cpu().numpy()
 
@@ -299,7 +301,9 @@ class IROF(Metric[List[float]]):
         y_pred = filtered_pred[class_category_mask]
 
         print("y_pred filtered and masked:", y_pred)
-        print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
+        print("y_pred filtered and masked shape:", y_pred.shape)
+
+        # print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
         # y_pred = y_pred.cpu().numpy()
         
         # get average score
