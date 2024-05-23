@@ -276,7 +276,12 @@ class IROF(Metric[List[float]]):
 
         # reshape predictions and flatten
         # y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
+        print("y_pred shape:", y_pred.shape)
+        print("y_pred:", y_pred)
         y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
+
+        print("y shape:", y.shape)
+        print("y shape:", y)
 
         # reshape labels and flatten
         new_shape = y_pred.shape[-2:]
@@ -292,6 +297,9 @@ class IROF(Metric[List[float]]):
         y[y == 255] = 0
         filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
         y_pred = filtered_pred[class_category_mask]
+
+        print("y_pred filtered and masked:", y_pred)
+        print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
         # y_pred = y_pred.cpu().numpy()
         
         # get average score
@@ -459,3 +467,4 @@ class IROF(Metric[List[float]]):
                 scores.append(score)
                 histories.append(history)
         return scores, histories
+
