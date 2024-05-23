@@ -282,7 +282,8 @@ class IROF(Metric[List[float]]):
         new_shape = y_pred.shape[-2:]
         # y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y_resized = y
-        y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
+        # y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
+        y = y.permute(1, 2, 0).contiguous().view(-1)
         y = y.long()
         y = y.cpu().numpy()
 
