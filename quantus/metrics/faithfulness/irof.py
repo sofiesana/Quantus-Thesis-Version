@@ -405,7 +405,7 @@ class IROF(Metric[List[float]]):
             att_segs[i] = np.mean(a[:, segments == s])
 
         # Sort segments based on the mean attribution (descending order).
-        s_indices = np.argsort(-att_segs)
+        s_indices = np.argsort(att_segs)
 
         preds = []
         x_prev_perturbed = x
