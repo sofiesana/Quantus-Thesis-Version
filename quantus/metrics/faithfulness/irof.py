@@ -274,6 +274,7 @@ class IROF(Metric[List[float]]):
         # y_pred = torch.from_numpy(y_pred)
         # y_pred = F.softmax(y_pred, dim = 1)
 
+        # checking
         # reshape predictions and flatten
         # y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
         
