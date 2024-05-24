@@ -276,23 +276,15 @@ class IROF(Metric[List[float]]):
 
         # reshape predictions and flatten
         # y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
-        print("y_pred shape:", y_pred.shape)
-        print("y_pred:", y_pred)
         
         y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
-        
-        print("y_pred_reshaped shape:", y_pred_reshaped.shape)
-
-        print("y shape:", y.shape)
-        print("y shape:", y)
-
+    
         # reshape labels and flatten
         new_shape = y_pred.shape[-2:]
         # y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
         y_resized = y
         # y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
         y = y.contiguous().view(-1)
-        print("y shape permuted:", y.shape)
         y = y.long()
         y = y.cpu().numpy()
 
@@ -300,54 +292,9 @@ class IROF(Metric[List[float]]):
         class_category_mask = (y == self.class_category)
         filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
         y_pred = filtered_pred[class_category_mask]
-
-        print("y_pred filtered and masked:", y_pred)
-        print("y_pred filtered and masked shape:", y_pred.shape)
 
         # print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
         # y_pred = y_pred.cpu().numpy()
-        
-        # get average score
-        y_pred = np.mean(y_pred)
-        
-        return y_pred
-
-    def get_y_pred_2(self, model, x_input, y):
-        y_pred = model.predict(x_input)
-        y_pred = torch.from_numpy(y_pred)
-        y_pred = F.softmax(y_pred, dim = 1)
-
-        # reshape predictions and flatten
-        y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
-        print("y_pred shape:", y_pred.shape)
-        print("y_pred:", y_pred)
-        # y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
-        print("y_pred_reshaped shape:", y_pred_reshaped.shape)
-
-        print("y shape:", y.shape)
-        print("y shape:", y)
-
-        # reshape labels and flatten
-        new_shape = y_pred.shape[-2:]
-        # y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
-        y_resized = y
-        # y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
-        y = y.contiguous().view(-1)
-        print("y shape permuted:", y.shape)
-        y = y.long()
-        y = y.cpu().numpy()
-
-        # filter to only keep pixels of class of interest
-        class_category_mask = (y == self.class_category)
-        y[y == 255] = 0
-        filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
-        y_pred = filtered_pred[class_category_mask]
-
-        print("y_pred filtered and masked:", y_pred)
-        print("y_pred filtered and masked shape:", y_pred.shape)
-
-        # print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
-        y_pred = y_pred.cpu().numpy()
         
         # get average score
         y_pred = np.mean(y_pred)
@@ -405,7 +352,7 @@ class IROF(Metric[List[float]]):
             att_segs[i] = np.mean(a[:, segments == s])
 
         # Sort segments based on the mean attribution (descending order).
-        s_indices = np.argsort(att_segs)
+        s_indices = np.argsort(-att_segs)
 
         preds = []
         x_prev_perturbed = x
