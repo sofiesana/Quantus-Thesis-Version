@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import torch
+from torch import nn
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
@@ -82,7 +83,7 @@ class IROF(Metric[List[float]]):
         class_category: int = None,
         num_classes: int = 1,
         class_name: str = "Class",
-        task = str = "seg"
+        task: str = "seg"
         **kwargs,
     ):
         """
@@ -270,6 +271,64 @@ class IROF(Metric[List[float]]):
             batch_size=batch_size,
             **kwargs,
         )
+    
+    def get_y_pred_sn(self, model, x_input, y, c):
+        #### NEED TO MASK TO Y AS WELL
+        # does it make sense to use c? ypou have to use it to get the cosine similarity of y_pred original..
+
+        y_pred = model.predict(x_input)
+        # normalized, ignored gt and prediction
+        prediction = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
+
+        gt = c.permute(0, 2, 3, 1).contiguous().view(-1, 3) ## these are the targets
+
+        labels = gt.max(dim=1)[0] != 255
+
+        gt = gt[labels]
+        prediction = prediction[labels]
+
+        gt = F.normalize(gt.float(), dim=1)
+        prediction = F.normalize(prediction, dim=1)
+
+        cosine_similarity = nn.CosineSimilarity()
+
+        cos_similarity = cosine_similarity(gt, prediction)
+
+        print("cos_similarity:", cos_similarity)
+
+        return cos_similarity.cpu().numpy()
+
+        y_pred = model.predict(x_input)
+        # y_pred = torch.from_numpy(y_pred)
+        # y_pred = F.softmax(y_pred, dim = 1)
+
+        # checking
+        # reshape predictions and flatten
+        # y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
+        
+        y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
+    
+        # reshape labels and flatten
+        new_shape = y_pred.shape[-2:]
+        # y_resized = F.interpolate(torch.unsqueeze(y, 0), size=new_shape)
+        y_resized = y
+        # y = y_resized.permute(0, 2, 3, 1).contiguous().view(-1)
+        y = y.contiguous().view(-1)
+        y = y.long()
+        y = y.cpu().numpy()
+
+        # filter to only keep pixels of class of interest
+        class_category_mask = (y == self.class_category)
+        filtered_pred = y_pred_reshaped[torch.arange(y.shape[0]), y]
+        y_pred = filtered_pred[class_category_mask]
+
+        # print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
+        # y_pred = y_pred.cpu().numpy()
+        
+        # get average score
+        y_pred = np.mean(y_pred)
+        
+        return y_pred
 
     def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
@@ -425,7 +484,7 @@ class IROF(Metric[List[float]]):
 
         # Predict on x.        
         x_input = model.shape_input(x, x.shape, channel_first=True)
-        y_pred = self.get_y_pred(model, x_input, y)
+        y_pred = self.get_y_pred_sn(model, x_input, y, c)
         # print("############################### ORIGINAL Y PRED:", y_pred)
 
         # Move x to CPU and convert to NumPy array for segmentation
@@ -471,7 +530,7 @@ class IROF(Metric[List[float]]):
 
             # Predict on perturbed input x.
             x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
-            y_pred_perturb = self.get_y_pred(model, x_input, y)
+            y_pred_perturb = self.get_y_pred(model, x_input, y, c)
             # print("############################### Y PRED PERTURBED:", y_pred_perturb)
 
             # Normalize the scores to be within range [0, 1].
