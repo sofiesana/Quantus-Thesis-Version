@@ -82,6 +82,7 @@ class IROF(Metric[List[float]]):
         class_category: int = None,
         num_classes: int = 1,
         class_name: str = "Class",
+        task = str = "seg"
         **kwargs,
     ):
         """
@@ -139,6 +140,7 @@ class IROF(Metric[List[float]]):
         self.num_classes = num_classes
         self.class_category = class_category
         self. class_name = class_name
+        self.task = task
         self.segmentation_method = segmentation_method
         self.nr_channels = None
         self.perturb_func = make_perturb_func(
@@ -390,6 +392,96 @@ class IROF(Metric[List[float]]):
         aoc = len(preds) - utils.calculate_auc(np.array(preds))
 
         return aoc, preds
+    
+    def evaluate_instance_sn(
+        self,
+        model: ModelInterface,
+        x: torch.Tensor,
+        y: np.ndarray,
+        a: np.ndarray,
+        c: torch.Tensor
+    ) -> float:
+        """
+        Evaluate instance gets model and data for a single instance as input and returns the evaluation result.
+
+        Parameters
+        ----------
+        model: ModelInterface
+            A ModelInterface that is subject to explanation.
+        x: torch.Tensor
+            The input to be evaluated on an instance-basis. Already on GPU.
+        y: np.ndarray
+            The output to be evaluated on an instance-basis.
+        a: np.ndarray
+            The explanation to be evaluated on an instance-basis.
+        Returns
+        -------
+        float
+            The evaluation results.
+        """
+        if self.class_category not in y:
+            print(self.class_name + ' does not exist in this image')
+            return None, None
+
+        # Predict on x.        
+        x_input = model.shape_input(x, x.shape, channel_first=True)
+        y_pred = self.get_y_pred(model, x_input, y)
+        # print("############################### ORIGINAL Y PRED:", y_pred)
+
+        # Move x to CPU and convert to NumPy array for segmentation
+        cpu_numpy_x = x.cpu().numpy()
+
+        # Segment image.
+        segments = utils.get_superpixel_segments(
+            img=np.moveaxis(cpu_numpy_x, 0, -1).astype("double"),
+            segmentation_method=self.segmentation_method,
+        )
+        nr_segments = len(np.unique(segments))
+        asserts.assert_nr_segments(nr_segments=nr_segments)
+
+        # Calculate average attribution of each segment.
+        att_segs = np.zeros(nr_segments)
+        for i, s in enumerate(range(nr_segments)):
+            att_segs[i] = np.mean(a[:, segments == s])
+
+        # Sort segments based on the mean attribution (descending order).
+        s_indices = np.argsort(-att_segs)
+
+        preds = []
+        x_prev_perturbed = x
+
+        for i_ix, s_ix in enumerate(s_indices):
+            # Move x_prev_perturbed to CPU and convert to NumPy array for perturbation
+            x_prev_perturbed_cpu = x_prev_perturbed.cpu().numpy()
+
+            # Perturb input by indices of attributions.
+            a_ix = np.nonzero((segments == s_ix).flatten())[0]
+
+            x_perturbed = self.perturb_func(
+                arr=x_prev_perturbed_cpu,
+                indices=a_ix,
+                indexed_axes=self.a_axes,
+            )
+            warn.warn_perturbation_caused_no_change(
+                x=x_prev_perturbed_cpu, x_perturbed=x_perturbed
+            )
+
+            # Convert x_perturbed back to a PyTorch tensor and move to GPU
+            x_perturbed_tensor = torch.from_numpy(x_perturbed).to(x.device)
+
+            # Predict on perturbed input x.
+            x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
+            y_pred_perturb = self.get_y_pred(model, x_input, y)
+            # print("############################### Y PRED PERTURBED:", y_pred_perturb)
+
+            # Normalize the scores to be within range [0, 1].
+            preds.append(float(y_pred_perturb / y_pred))
+            x_prev_perturbed = x_perturbed_tensor
+
+        # Calculate the area over the curve (AOC) score.
+        aoc = len(preds) - utils.calculate_auc(np.array(preds))
+
+        return aoc, preds
 
     def custom_preprocess(
         self,
@@ -432,6 +524,7 @@ class IROF(Metric[List[float]]):
         x_batch: np.ndarray,
         y_batch: np.ndarray,
         a_batch: np.ndarray,
+        custom_batch,
         **kwargs,
     ) -> List[float]:
         """
@@ -458,10 +551,24 @@ class IROF(Metric[List[float]]):
         """
         scores = []
         histories = []
-        for x, y, a in zip(x_batch, y_batch, a_batch):
-            score, history = self.evaluate_instance(model=model, x=x, y=y, a=a)
-            if score is not None:
-                scores.append(score)
-                histories.append(history)
+
+        if self.task == "sn":
+            for x, y, a, c in zip(x_batch, y_batch, a_batch, custom_batch):
+                if self.task == "seg":
+                    score, history = self.evaluate_instance(model=model, x=x, y=y, a=a, c=c)
+                elif self.task == "sn":
+                    score, history = self.evaluate_instance_sn(model=model, x=x, y=y, a=a, c=c)
+                if score is not None:
+                    scores.append(score)
+                    histories.append(history)
+        elif self.task == "seg":
+            for x, y, a in zip(x_batch, y_batch, a_batch):
+                if self.task == "seg":
+                    score, history = self.evaluate_instance(model=model, x=x, y=y, a=a, c=c)
+                elif self.task == "sn":
+                    score, history = self.evaluate_instance_sn(model=model, x=x, y=y, a=a, c=c)
+                if score is not None:
+                    scores.append(score)
+                    histories.append(history)
         return scores, histories
 
