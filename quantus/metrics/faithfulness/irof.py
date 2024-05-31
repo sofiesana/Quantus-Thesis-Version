@@ -275,11 +275,11 @@ class IROF(Metric[List[float]]):
     def get_y_pred_sn(self, model, x_input, y):
         y_pred = model.predict(x_input)
 
-        print("y_pred:", y_pred)
-        print("y_pred shape:", y_pred.shape)
+        # print("y_pred:", y_pred)
+        # print("y_pred shape:", y_pred.shape)
 
-        print("y:", y)
-        print("y shape:", y.shape)
+        # print("y:", y)
+        # print("y shape:", y.shape)
 
         # Convert numpy arrays to PyTorch tensors
         y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
@@ -287,7 +287,8 @@ class IROF(Metric[List[float]]):
         # Reshape tensors to (batch_size, n*m, 3) to facilitate cosine similarity element-wise
         batch_size, channels, n, m = y_pred_tensor.shape
         y_pred_tensor = y_pred_tensor.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-        y = y.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
+        y = torch.unsqueeze(y, 0).permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
+        print("y shape:", y.shape)
 
         # Define cosine similarity function
         cos = nn.CosineSimilarity(dim=2, eps=1e-6)
