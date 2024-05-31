@@ -294,7 +294,7 @@ class IROF(Metric[List[float]]):
         cos = nn.CosineSimilarity(dim=2, eps=1e-6)
 
         # Compute cosine similarity
-        cosine_similarities = cos(y_pred_tensor, y)
+        cosine_similarities = cos(y_pred_tensor.to(y.device), y)
 
         # Reshape back to original shape (batch_size, n, m)
         # not needed if only mean is needed
