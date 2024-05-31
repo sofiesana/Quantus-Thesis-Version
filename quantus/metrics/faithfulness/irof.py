@@ -275,6 +275,12 @@ class IROF(Metric[List[float]]):
     def get_y_pred_sn(self, model, x_input, y):
         y_pred = model.predict(x_input)
 
+        print("y_pred:", y_pred)
+        print("y_pred shape:", y_pred.shape)
+
+        print("y:", y)
+        print("y shape:", y.shape)
+
         # Convert numpy arrays to PyTorch tensors
         y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
 
