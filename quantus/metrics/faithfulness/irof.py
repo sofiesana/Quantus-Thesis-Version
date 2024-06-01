@@ -298,7 +298,7 @@ class IROF(Metric[List[float]]):
 
         # Reshape back to original shape (batch_size, n, m)
         # not needed if only mean is needed
-         = cosine_similarities.view(batch_size, n, m)
+        cosine_similarities = cosine_similarities.view(batch_size, n, m)
 
         # try this later:
         # rescaled_cosine_similarities = (cosine_similarities + 1)
