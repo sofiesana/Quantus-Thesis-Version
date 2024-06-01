@@ -298,18 +298,29 @@ class IROF(Metric[List[float]]):
 
         # Reshape back to original shape (batch_size, n, m)
         # not needed if only mean is needed
-        cosine_similarities = cosine_similarities.view(batch_size, n, m)
+         = cosine_similarities.view(batch_size, n, m)
 
         # try this later:
         # rescaled_cosine_similarities = (cosine_similarities + 1)
 
-        np_cosine_similarity = cosine_similarities.detach().cpu().numpy()
+        # np_cosine_similarity = cosine_similarities.detach().cpu().numpy()
 
-        mean_cs = np.mean(np_cosine_similarity)
-        print("cosine_similarities:", cosine_similarities)
-        print("mean:", mean_cs)
+        # Convert cosine similarity to angle in radians
+        angle_radians = torch.acos(cosine_similarities)
 
-        return mean_cs
+        # Normalize the angle to a value between 0 and 1
+        angle_normalized = angle_radians / torch.tensor(torch.pi)
+
+        np_angle_normalized = angle_normalized.detach().cpu().numpy*()
+
+        print(angle_normalized)
+
+        # mean_cs = np.mean(np_cosine_similarity)
+        mean_angle = np.mean(np_angle_normalized)
+        # print("cosine_similarities:", cosine_similarities)
+        print("mean:", mean_angle)
+
+        return mean_angle
 
     def get_y_pred(self, model, x_input, y):
         y_pred = model.predict(x_input)
