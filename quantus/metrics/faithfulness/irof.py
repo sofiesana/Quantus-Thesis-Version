@@ -311,7 +311,7 @@ class IROF(Metric[List[float]]):
         # Normalize the angle to a value between 0 and 1
         angle_normalized = angle_radians / torch.tensor(torch.pi)
 
-        np_angle_normalized = angle_normalized.detach().cpu().numpy*()
+        np_angle_normalized = angle_normalized.detach().cpu().numpy()
 
         print(angle_normalized)
 
