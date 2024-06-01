@@ -288,7 +288,9 @@ class IROF(Metric[List[float]]):
         batch_size, channels, n, m = y_pred_tensor.shape
         y_pred_tensor = y_pred_tensor.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
         y = torch.unsqueeze(y, 0).permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-        print("y shape:", y.shape)
+        # print("y shape:", y.shape)
+        y = F.normalize(y, dim=1)
+        y_pred_tensor = F.normalize(y_pred_tensor, dim=1)
 
         # Define cosine similarity function
         cos = nn.CosineSimilarity(dim=2, eps=1e-6)
