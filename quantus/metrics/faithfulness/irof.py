@@ -310,10 +310,10 @@ class IROF(Metric[List[float]]):
         # Convert cosine similarity to angle in radians
         angle_radians = torch.acos(cosine_similarities)
 
-        # # Normalize the angle to a value between 0 and 1
-        angle_normalized = angle_radians / torch.tensor(torch.pi)
+        # Convert angle in radians to a similarity index between 0 and 1
+        similarity_index = (torch.pi - angle_radians) / torch.pi
 
-        np_angle_normalized = angle_normalized.detach().cpu().numpy()
+        np_angle_normalized = similarity_index.detach().cpu().numpy()
 
         # print(np_cosine_similarity)
 
