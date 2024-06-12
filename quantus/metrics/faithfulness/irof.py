@@ -320,7 +320,7 @@ class IROF(Metric[List[float]]):
         # mean_cs = np.mean(np_cosine_similarity)
         mean_angle = np.mean(np_angle_normalized)
         # print("cosine_similarities:", cosine_similarities)
-        print("mean:", mean_angle)
+        # print("mean:", mean_angle)
 
         return mean_angle
 
