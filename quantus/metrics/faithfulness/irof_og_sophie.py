@@ -273,8 +273,7 @@ class IROF(Metric[List[float]]):
         )
     
     def get_y_pred_sn(self, model, x_input, y):
-        y_pred, _ = model.model(x_input)
-        y_pred = y_pred[2]
+        y_pred = model.predict(x_input)
 
         # print("y_pred:", y_pred)
         # print("y_pred shape:", y_pred.shape)
@@ -289,38 +288,19 @@ class IROF(Metric[List[float]]):
         batch_size, channels, n, m = y_pred_tensor.shape
         y_pred_tensor = y_pred_tensor.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
         y = torch.unsqueeze(y, 0).permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-
-        # Extract individual components
-        pred_vec1, pred_vec2, pred_vec3 = y_pred_tensor[..., 0], y_pred_tensor[..., 1], y_pred_tensor[..., 2]  # Shape: (batch_size, n*m)
-
-        # Create boolean masks for each component
-        x_mask = np.sign(self.class_category[0]) == np.sign(pred_vec1)
-        y_mask = np.sign(self.class_category[1]) == np.sign(pred_vec2)
-        z_mask = np.sign(self.class_category[2]) == np.sign(pred_vec3)
-
-        # Combine masks: Only keep pixels where all conditions are met
-        valid_mask = x_mask & y_mask & z_mask  # Shape: (batch_size, n*m)
-
-        # Apply the mask to filter normals
-        y_filtered = y[valid_mask]
-        y_pred_filtered = y_pred_tensor[valid_mask]
-
         # print("y shape:", y.shape)
-        y = F.normalize(y_filtered, dim=1)
-        y_pred_tensor = F.normalize(y_pred_filtered, dim=1)
+        y = F.normalize(y, dim=1)
+        y_pred_tensor = F.normalize(y_pred_tensor, dim=1)
 
         # Define cosine similarity function
-        cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+        cos = nn.CosineSimilarity(dim=2, eps=1e-6)
 
         # Compute cosine similarity
         cosine_similarities = cos(y_pred_tensor.to(y.device), y)
 
-        # print("Cosine Similarity: ", cosine_similarities)
-        # print("Mean Cosine Similarity: ", torch.mean(cosine_similarities))
-
         # Reshape back to original shape (batch_size, n, m)
         # not needed if only mean is needed
-        # cosine_similarities = cosine_similarities.view(batch_size, n, m)
+        cosine_similarities = cosine_similarities.view(batch_size, n, m)
 
         # try this later:
         # rescaled_cosine_similarities = (cosine_similarities + 1) / 2
@@ -328,88 +308,24 @@ class IROF(Metric[List[float]]):
         # np_cosine_similarity = rescaled_cosine_similarities.detach().cpu().numpy()
 
         # Convert cosine similarity to angle in radians
-        # angle_radians = torch.acos(cosine_similarities)
-        # print("a r: ", angle_radians)
+        angle_radians = torch.acos(cosine_similarities)
 
-        # # Convert angle in radians to a similarity index between 0 and 1
-        # similarity_index = (torch.pi - angle_radians) / torch.pi
+        # Convert angle in radians to a similarity index between 0 and 1
+        similarity_index = (torch.pi - angle_radians) / torch.pi
 
-        # np_angle_normalized = similarity_index.detach().cpu().numpy()
+        np_angle_normalized = similarity_index.detach().cpu().numpy()
 
-        # # print(np_cosine_similarity)
+        # print(np_cosine_similarity)
 
-        # # mean_cs = np.mean(np_cosine_similarity)
-        # mean_angle = np.mean(np_angle_normalized)
+        # mean_cs = np.mean(np_cosine_similarity)
+        mean_angle = np.mean(np_angle_normalized)
         # print("cosine_similarities:", cosine_similarities)
+        # print("mean:", mean_angle)
 
-        normalized_cos_sim = (cosine_similarities + 1)/2
-        mean_norm_cos_sim = normalized_cos_sim.cpu().numpy()
-        mean_norm_cos_sim = np.mean(mean_norm_cos_sim)
-        # print("mean:", mean_norm_cos_sim)
-
-        return mean_norm_cos_sim
-    
-    def get_y_pred_depth(self, model, x_input, y):
-        y_pred, _ = model.model(x_input)
-        y_pred = y_pred[1]
-
-        # plt.imshow(x_input.squeeze().permute(1,2,0))
-        # plt.show()
-
-        # plt.imshow(y_pred.squeeze())
-        # plt.show()
-
-        depths = y.flatten()
-        quintiles = np.quantile(depths, [0, 0.2, 0.4, 0.6, 0.8, 1])
-        quintile_min = quintiles[self.class_category]
-        quintile_max = quintiles[self.class_category + 1]
-        # print("Quintile min: ", quintile_min, "quintile max: ", quintile_max)
-
-        y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
-
-        # Reshape tensors to (batch_size, n*m, 1) to facilitate cosine similarity element-wise
-        batch_size, channels, n, m = y_pred_tensor.shape
-        y_pred_tensor = y_pred_tensor.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-        y = torch.unsqueeze(y, 0).permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-
-        # Get depth mask for only depths in quintile
-        depth_mask = (y_pred_tensor >= quintile_min) & (y_pred_tensor <= quintile_max)
-        # Get mask so that only preds in the same quintile as y are considered
-        # y_mask = (y >= quintile_min) & (y <= quintile_max)
-        # valid_mask = depth_mask & y_mask  # Only keep pixels where both conditions are met
-        valid_mask = depth_mask
-
-        # mask_np = valid_mask.squeeze()
-        # mask_np = mask_np.view(n, m)
-        # mask_np = mask_np.cpu().numpy()
-        # print("Mask Shape: ", mask_np.shape)
-        # plt.imshow(mask_np, cmap='gray')  # Use grayscale for binary masks
-        # plt.colorbar()  # Optional: Shows color scale
-        # plt.title("Mask Visualization")
-        # plt.axis("off")  # Remove axes for a clean look
-        # plt.show()
-
-        y_pred_tensor = torch.squeeze(y_pred_tensor) # remove batch and channel dimensions
-        y = torch.squeeze(y)
-
-        y_pred_filtered = y_pred_tensor[valid_mask.squeeze()]
-        y_filtered = y[valid_mask.squeeze()]
-        
-        y_filtered = torch.clamp(y_filtered, min=1e-6) # to avoid division by zero erros, but i dont think there will be any
-
-        difference = abs((y_pred_filtered - y_filtered)/y_filtered)
-        difference = torch.clamp(difference, 0, 1) # clamp between 0 and 1
-        mean_dif = torch.mean(difference)
-
-        # mae_per_pixel = torch.abs(y_filtered - y_pred_filtered)  # Element-wise MAE
-
-        # return 1 - the mean diff to get the similarity to the baseline
-
-        return 1 - mean_dif
+        return mean_angle
 
     def get_y_pred(self, model, x_input, y):
-        y_pred, _ = model.predict(x_input)
-        y_pred = y_pred[0]
+        y_pred = model.predict(x_input)
         # y_pred = torch.from_numpy(y_pred)
         # y_pred = F.softmax(y_pred, dim = 1)
 
@@ -417,7 +333,7 @@ class IROF(Metric[List[float]]):
         # reshape predictions and flatten
         # y_pred_reshaped = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, 40)
         
-        y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 13)
+        y_pred_reshaped = np.transpose(y_pred, (0, 2, 3, 1)).reshape(-1, 40)
     
         # reshape labels and flatten
         new_shape = y_pred.shape[-2:]
@@ -443,7 +359,7 @@ class IROF(Metric[List[float]]):
 
     def evaluate_instance(
         self,
-        model,
+        model: ModelInterface,
         x: torch.Tensor,
         y: np.ndarray,
         a: np.ndarray,
@@ -606,93 +522,8 @@ class IROF(Metric[List[float]]):
             y_pred_perturb = self.get_y_pred_sn(model, x_input, y)
             # print("############################### Y PRED PERTURBED:", y_pred_perturb)
 
-            # Normalize the scores to be within range [0, 1]. 
-            # Change to (mean?) cosine similarity
+            # Normalize the scores to be within range [0, 1].
             preds.append(float(y_pred_perturb / y_pred))
-            x_prev_perturbed = x_perturbed_tensor
-
-        # Calculate the area over the curve (AOC) score.
-        aoc = len(preds) - utils.calculate_auc(np.array(preds))
-
-        return aoc, preds
-    
-    def evaluate_instance_depth(
-        self,
-        model,
-        x: torch.Tensor,
-        y: np.ndarray,
-        a: np.ndarray
-    ) -> float:
-        """
-        Evaluate instance gets model and data for a single instance as input and returns the evaluation result.
-
-        Parameters
-        ----------
-        model: ModelInterface
-            A ModelInterface that is subject to explanation.
-        x: torch.Tensor
-            The input to be evaluated on an instance-basis. Already on GPU.
-        y: np.ndarray
-            The output to be evaluated on an instance-basis.
-        a: np.ndarray
-            The explanation to be evaluated on an instance-basis.
-        Returns
-        -------
-        float
-            The evaluation results.
-        """
-        # Predict on x.        
-        x_input = model.shape_input(x, x.shape, channel_first=True)
-        y_pred = self.get_y_pred_depth(model, x_input, y)
-        # print("############################### ORIGINAL Y PRED:", y_pred)
-
-        # Move x to CPU and convert to NumPy array for segmentation
-        cpu_numpy_x = x.cpu().numpy()
-
-        # Segment image.
-        segments = utils.get_superpixel_segments(
-            img=np.moveaxis(cpu_numpy_x, 0, -1).astype("double"),
-            segmentation_method=self.segmentation_method,
-        )
-        nr_segments = len(np.unique(segments))
-        asserts.assert_nr_segments(nr_segments=nr_segments)
-
-        # Calculate average attribution of each segment.
-        att_segs = np.zeros(nr_segments)
-        for i, s in enumerate(range(nr_segments)):
-            att_segs[i] = np.mean(a[:, segments == s])
-
-        # Sort segments based on the mean attribution (descending order).
-        s_indices = np.argsort(-att_segs)
-
-        preds = []
-        preds.append(float(y_pred)) # add pred on unperturbed image
-        x_prev_perturbed = x
-
-        for i_ix, s_ix in enumerate(s_indices):
-            # Move x_prev_perturbed to CPU and convert to NumPy array for perturbation
-            x_prev_perturbed_cpu = x_prev_perturbed.cpu().numpy()
-
-            # Perturb input by indices of attributions.
-            a_ix = np.nonzero((segments == s_ix).flatten())[0]
-
-            x_perturbed = self.perturb_func(
-                arr=x_prev_perturbed_cpu,
-                indices=a_ix,
-                indexed_axes=self.a_axes,
-            )
-            warn.warn_perturbation_caused_no_change(
-                x=x_prev_perturbed_cpu, x_perturbed=x_perturbed
-            )
-
-            # Convert x_perturbed back to a PyTorch tensor and move to GPU
-            x_perturbed_tensor = torch.from_numpy(x_perturbed).to(x.device)
-
-            # Predict on perturbed input x.
-            x_input = model.shape_input(x_perturbed_tensor, x_perturbed_tensor.shape, channel_first=True)
-            y_pred_perturb_dif = self.get_y_pred_depth(model, x_input, y)
-
-            preds.append(float(y_pred_perturb_dif))
             x_prev_perturbed = x_perturbed_tensor
 
         # Calculate the area over the curve (AOC) score.
@@ -737,7 +568,7 @@ class IROF(Metric[List[float]]):
 
     def evaluate_batch(
         self,
-        model,
+        model: ModelInterface,
         x_batch: np.ndarray,
         y_batch: np.ndarray,
         a_batch: np.ndarray,
@@ -774,8 +605,6 @@ class IROF(Metric[List[float]]):
                 score, history = self.evaluate_instance(model=model, x=x, y=y, a=a)
             elif self.task == "sn":
                 score, history = self.evaluate_instance_sn(model=model, x=x, y=y, a=a)
-            elif self.task == "depth":
-                score, history = self.evaluate_instance_depth(model=model, x=x, y=y, a=a)
             if score is not None:
                 scores.append(score)
                 histories.append(history)
