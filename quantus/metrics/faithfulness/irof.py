@@ -310,7 +310,7 @@ class IROF(Metric[List[float]]):
         # Reshape tensors to (batch_size, n*m, 3) to facilitate cosine similarity element-wise
         batch_size, channels, n, m = y_pred_tensor.shape
         y_pred_tensor = y_pred_tensor.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-        y = torch.unsqueeze(y, 0).permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
+        y = y.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
 
         # Extract individual components
         pred_vec1, pred_vec2, pred_vec3 = y_pred_tensor[..., 0], y_pred_tensor[..., 1], y_pred_tensor[..., 2]  # Shape: (batch_size, n*m)
