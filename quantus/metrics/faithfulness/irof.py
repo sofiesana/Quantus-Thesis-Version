@@ -274,6 +274,7 @@ class IROF(Metric[List[float]]):
     
     def get_y_pred_sn(self, model, x_input, y):
         y_pred = model.model(x_input)
+        y_pred = y_pred[0]
         print(y_pred)
         print(y)
         # check if y and y_pred are identical, and if not, print matrix of differences
