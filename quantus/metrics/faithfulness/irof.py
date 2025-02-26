@@ -276,17 +276,27 @@ class IROF(Metric[List[float]]):
         y_pred = model.model(x_input)
         print(y_pred)
         print(y)
+        # check if y and y_pred are identical, and if not, print matrix of differences
+        # Check if y and y_pred are identical
+        if torch.equal(y_pred, y):
+            print("y_pred and y are identical.")
+        else:
+            print("y_pred and y are not identical.")
+            # Print the matrix of differences
+            difference = y_pred - y
+            print("Difference matrix:")
+            print(difference)
 
         # print("y shape:", y.shape)
         y = F.normalize(y, dim=1)
-        y = y * 2 - 1
+        y = (y * 2) - 1
         y_pred = F.normalize(y_pred, dim=1)
-        y_pred = y_pred * 2 - 1
+        y_pred = (y_pred * 2) - 1
 
-        # print("y_pred:", y_pred)
+        print("y_pred:", y_pred)
         # print("y_pred shape:", y_pred.shape)
 
-        # print("y:", y)
+        print("y:", y)
         # print("y shape:", y.shape)
 
         # Convert numpy arrays to PyTorch tensors
@@ -314,9 +324,9 @@ class IROF(Metric[List[float]]):
         y_pred_filtered = y_pred_tensor[valid_mask]
 
         # print("y_filtered shape:", y_filtered.shape)
-        # print(y_filtered)
+        print(y_filtered)
         # print("y_pred_filtered shape:", y_pred_filtered.shape)
-        # print(y_pred_filtered)
+        print(y_pred_filtered)
 
 
         # print("y shape:", y.shape)
@@ -324,7 +334,7 @@ class IROF(Metric[List[float]]):
         y_pred_tensor = F.normalize(y_pred_filtered, dim=1)
 
         # Define cosine similarity function
-        cos = nn.CosineSimilarity(dim=2, eps=1e-6)
+        cos = nn.CosineSimilarity(dim=1, eps=1e-6)
 
         # Compute cosine similarity
         cosine_similarities = cos(y_pred_tensor.to(y.device), y)
