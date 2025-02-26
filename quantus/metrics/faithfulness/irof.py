@@ -286,6 +286,8 @@ class IROF(Metric[List[float]]):
             difference = y_pred - y
             print("Difference matrix:")
             print(difference)
+            # print sum of difference
+            
 
         # print("y shape:", y.shape)
         y = F.normalize(y, dim=1)
