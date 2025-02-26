@@ -327,6 +327,9 @@ class IROF(Metric[List[float]]):
 
         # Compute cosine similarity
         cosine_similarities = cos(y_pred_tensor.to(y.device), y)
+        # check if cosine_similarities is empty
+        if cosine_similarities.nelement() == 0:
+            cosine_similarities = torch.tensor(0.0, device=cosine_similarities.device)
         # print("Cosine Similarity: ", cosine_similarities)
 
         # print("Cosine Similarity: ", cosine_similarities)
@@ -357,6 +360,8 @@ class IROF(Metric[List[float]]):
         # print("cosine_similarities:", cosine_similarities)
 
         normalized_cos_sim = (cosine_similarities + 1)/2
+        if cosine_similarities.nelement() == 0:
+            normalized_cos_sim = torch.tensor(0.0, device=normalized_cos_sim.device)
         mean_norm_cos_sim = normalized_cos_sim.cpu().numpy()
         mean_norm_cos_sim = np.mean(mean_norm_cos_sim)
         # print("mean:", mean_norm_cos_sim)
