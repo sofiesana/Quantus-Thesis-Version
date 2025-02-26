@@ -351,7 +351,7 @@ class IROF(Metric[List[float]]):
         # print(normalized_cos_sim)
         mean_norm_cos_sim = normalized_cos_sim.cpu().numpy()
         mean_norm_cos_sim = np.mean(mean_norm_cos_sim)
-        print("mean:", mean_norm_cos_sim)
+        # print("mean:", mean_norm_cos_sim)
 
         return mean_norm_cos_sim
     
