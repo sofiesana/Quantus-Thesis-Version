@@ -287,7 +287,8 @@ class IROF(Metric[List[float]]):
             print("Difference matrix:")
             print(difference)
             # print sum of difference
-            
+            print("Sum of differences:", torch.sum(difference))
+
 
         # print("y shape:", y.shape)
         y = F.normalize(y, dim=1)
