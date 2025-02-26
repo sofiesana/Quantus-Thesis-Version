@@ -274,6 +274,7 @@ class IROF(Metric[List[float]]):
     
     def get_y_pred_sn(self, model, x_input, y):
         y_pred = model.model(x_input)
+        # print(y_pred)
 
         # print("y_pred:", y_pred)
         # print("y_pred shape:", y_pred.shape)
@@ -314,6 +315,7 @@ class IROF(Metric[List[float]]):
 
         # Compute cosine similarity
         cosine_similarities = cos(y_pred_tensor.to(y.device), y)
+        print("Cosine Similarity: ", cosine_similarities)
 
         # print("Cosine Similarity: ", cosine_similarities)
         # print("Mean Cosine Similarity: ", torch.mean(cosine_similarities))
@@ -345,6 +347,7 @@ class IROF(Metric[List[float]]):
         normalized_cos_sim = (cosine_similarities + 1)/2
         mean_norm_cos_sim = normalized_cos_sim.cpu().numpy()
         mean_norm_cos_sim = np.mean(mean_norm_cos_sim)
+        print("mean:", mean_norm_cos_sim)
         # print("mean:", mean_norm_cos_sim)
 
         return mean_norm_cos_sim
