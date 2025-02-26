@@ -276,20 +276,20 @@ class IROF(Metric[List[float]]):
         y_pred = model.model(x_input)
         y = y.unsqueeze(0)
         # y_pred = y_pred[0]
-        print(y_pred)
-        print(y)
+        # print(y_pred)
+        # print(y)
         # check if y and y_pred are identical, and if not, print matrix of differences
         # Check if y and y_pred are identical
-        if torch.equal(y_pred, y):
-            print("y_pred and y are identical.")
-        else:
-            print("y_pred and y are not identical.")
-            # Print the matrix of differences
-            difference = y_pred - y
-            print("Difference matrix:")
-            print(difference)
-            # print sum of difference
-            print("Sum of differences:", torch.sum(difference))
+        # if torch.equal(y_pred, y):
+        #     print("y_pred and y are identical.")
+        # else:
+        #     print("y_pred and y are not identical.")
+        #     # Print the matrix of differences
+        #     difference = y_pred - y
+        #     print("Difference matrix:")
+        #     print(difference)
+        #     # print sum of difference
+        #     print("Sum of differences:", torch.sum(difference))
 
 
         # print("y shape:", y.shape)
@@ -298,10 +298,10 @@ class IROF(Metric[List[float]]):
         y_pred = F.normalize(y_pred, dim=1)
         y_pred = (y_pred * 2) - 1
 
-        print("y_pred:", y_pred)
-        # print("y_pred shape:", y_pred.shape)
+        # print("y_pred:", y_pred)
+        # # print("y_pred shape:", y_pred.shape)
 
-        print("y:", y)
+        # print("y:", y)
         # print("y shape:", y.shape)
 
         # Convert numpy arrays to PyTorch tensors
@@ -328,10 +328,10 @@ class IROF(Metric[List[float]]):
         y_filtered = y[valid_mask]
         y_pred_filtered = y_pred_tensor[valid_mask]
 
-        # print("y_filtered shape:", y_filtered.shape)
-        print(y_filtered)
-        # print("y_pred_filtered shape:", y_pred_filtered.shape)
-        print(y_pred_filtered)
+        # # print("y_filtered shape:", y_filtered.shape)
+        # print(y_filtered)
+        # # print("y_pred_filtered shape:", y_pred_filtered.shape)
+        # print(y_pred_filtered)
 
 
         # print("y shape:", y.shape)
@@ -348,7 +348,7 @@ class IROF(Metric[List[float]]):
         normalized_cos_sim = (cosine_similarities + 1)/2
         if cosine_similarities.nelement() == 0:
             normalized_cos_sim = torch.tensor(0.0, device=normalized_cos_sim.device)
-        print(normalized_cos_sim)
+        # print(normalized_cos_sim)
         mean_norm_cos_sim = normalized_cos_sim.cpu().numpy()
         mean_norm_cos_sim = np.mean(mean_norm_cos_sim)
         print("mean:", mean_norm_cos_sim)
