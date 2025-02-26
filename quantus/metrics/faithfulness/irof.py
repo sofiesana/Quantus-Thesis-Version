@@ -282,11 +282,11 @@ class IROF(Metric[List[float]]):
         y_pred = F.normalize(y_pred, dim=1)
         y_pred = y_pred * 2 - 1
 
-        print("y_pred:", y_pred)
-        print("y_pred shape:", y_pred.shape)
+        # print("y_pred:", y_pred)
+        # print("y_pred shape:", y_pred.shape)
 
-        print("y:", y)
-        print("y shape:", y.shape)
+        # print("y:", y)
+        # print("y shape:", y.shape)
 
         # Convert numpy arrays to PyTorch tensors
         y_pred_tensor = y_pred.float()
@@ -312,10 +312,10 @@ class IROF(Metric[List[float]]):
         y_filtered = y[valid_mask]
         y_pred_filtered = y_pred_tensor[valid_mask]
 
-        print("y_filtered shape:", y_filtered.shape)
-        print(y_filtered)
-        print("y_pred_filtered shape:", y_pred_filtered.shape)
-        print(y_pred_filtered)
+        # print("y_filtered shape:", y_filtered.shape)
+        # print(y_filtered)
+        # print("y_pred_filtered shape:", y_pred_filtered.shape)
+        # print(y_pred_filtered)
 
 
         # print("y shape:", y.shape)
@@ -327,7 +327,7 @@ class IROF(Metric[List[float]]):
 
         # Compute cosine similarity
         cosine_similarities = cos(y_pred_tensor.to(y.device), y)
-        print("Cosine Similarity: ", cosine_similarities)
+        # print("Cosine Similarity: ", cosine_similarities)
 
         # print("Cosine Similarity: ", cosine_similarities)
         # print("Mean Cosine Similarity: ", torch.mean(cosine_similarities))
@@ -359,7 +359,7 @@ class IROF(Metric[List[float]]):
         normalized_cos_sim = (cosine_similarities + 1)/2
         mean_norm_cos_sim = normalized_cos_sim.cpu().numpy()
         mean_norm_cos_sim = np.mean(mean_norm_cos_sim)
-        print("mean:", mean_norm_cos_sim)
+        # print("mean:", mean_norm_cos_sim)
         # print("mean:", mean_norm_cos_sim)
 
         return mean_norm_cos_sim
