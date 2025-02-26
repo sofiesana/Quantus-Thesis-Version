@@ -276,11 +276,11 @@ class IROF(Metric[List[float]]):
         y_pred = model.model(x_input)
         # print(y_pred)
 
-        # print("y_pred:", y_pred)
-        # print("y_pred shape:", y_pred.shape)
+        print("y_pred:", y_pred)
+        print("y_pred shape:", y_pred.shape)
 
-        # print("y:", y)
-        # print("y shape:", y.shape)
+        print("y:", y)
+        print("y shape:", y.shape)
 
         # Convert numpy arrays to PyTorch tensors
         y_pred_tensor = y_pred.float()
@@ -305,6 +305,12 @@ class IROF(Metric[List[float]]):
         # Apply the mask to filter normals
         y_filtered = y[valid_mask]
         y_pred_filtered = y_pred_tensor[valid_mask]
+
+        print("y_filtered shape:", y_filtered.shape)
+        print(y_filtered)
+        print("y_pred_filtered shape:", y_pred_filtered.shape)
+        print(y_pred_filtered)
+
 
         # print("y shape:", y.shape)
         y = F.normalize(y_filtered, dim=1)
