@@ -324,7 +324,7 @@ class IROF(Metric[List[float]]):
         y_pred_tensor = F.normalize(y_pred_filtered, dim=1)
 
         # Define cosine similarity function
-        cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+        cos = nn.CosineSimilarity(dim=2, eps=1e-6)
 
         # Compute cosine similarity
         cosine_similarities = cos(y_pred_tensor.to(y.device), y)
