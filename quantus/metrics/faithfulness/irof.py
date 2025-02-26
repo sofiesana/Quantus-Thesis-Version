@@ -276,6 +276,12 @@ class IROF(Metric[List[float]]):
         y_pred = model.model(x_input)
         # print(y_pred)
 
+        # print("y shape:", y.shape)
+        y = F.normalize(y, dim=1)
+        y = y * 2 - 1
+        y_pred = F.normalize(y_pred, dim=1)
+        y_pred = y_pred * 2 - 1
+
         print("y_pred:", y_pred)
         print("y_pred shape:", y_pred.shape)
 
