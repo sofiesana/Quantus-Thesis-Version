@@ -273,8 +273,7 @@ class IROF(Metric[List[float]]):
         )
     
     def get_y_pred_sn(self, model, x_input, y):
-        y_pred, _ = model.model(x_input)
-        y_pred = y_pred[2]
+        y_pred = model.model(x_input)
 
         # print("y_pred:", y_pred)
         # print("y_pred shape:", y_pred.shape)
@@ -283,7 +282,7 @@ class IROF(Metric[List[float]]):
         # print("y shape:", y.shape)
 
         # Convert numpy arrays to PyTorch tensors
-        y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
+        y_pred_tensor = y_pred.float()
 
         # Reshape tensors to (batch_size, n*m, 3) to facilitate cosine similarity element-wise
         batch_size, channels, n, m = y_pred_tensor.shape
@@ -294,12 +293,13 @@ class IROF(Metric[List[float]]):
         pred_vec1, pred_vec2, pred_vec3 = y_pred_tensor[..., 0], y_pred_tensor[..., 1], y_pred_tensor[..., 2]  # Shape: (batch_size, n*m)
 
         # Create boolean masks for each component
-        x_mask = np.sign(self.class_category[0]) == np.sign(pred_vec1)
-        y_mask = np.sign(self.class_category[1]) == np.sign(pred_vec2)
-        z_mask = np.sign(self.class_category[2]) == np.sign(pred_vec3)
+        x_mask = torch.sign(torch.tensor(self.class_category[0], dtype=torch.float32)) == torch.sign(pred_vec1)
+        y_mask = torch.sign(torch.tensor(self.class_category[1], dtype=torch.float32)) == torch.sign(pred_vec2)
+        z_mask = torch.sign(torch.tensor(self.class_category[2], dtype=torch.float32)) == torch.sign(pred_vec3)
+
 
         # Combine masks: Only keep pixels where all conditions are met
-        valid_mask = x_mask & y_mask & z_mask  # Shape: (batch_size, n*m)
+        valid_mask = torch.logical_and(torch.logical_and(x_mask, y_mask), z_mask)  # Shape: (batch_size, n*m)
 
         # Apply the mask to filter normals
         y_filtered = y[valid_mask]
@@ -351,67 +351,55 @@ class IROF(Metric[List[float]]):
     
     def get_y_pred_depth(self, model, x_input, y):
         y_pred, _ = model.model(x_input)
-        y_pred = y_pred[1]
-
-        # plt.imshow(x_input.squeeze().permute(1,2,0))
-        # plt.show()
-
-        # plt.imshow(y_pred.squeeze())
-        # plt.show()
-
-        depths = y.flatten()
+        y_pred = y_pred[1]  # Do not move it to CPU immediately
+    
+        device = y.device  # Get the device of y
+    
+        depths = y.cpu().numpy().flatten()
         quintiles = np.quantile(depths, [0, 0.2, 0.4, 0.6, 0.8, 1])
         quintile_min = quintiles[self.class_category]
         quintile_max = quintiles[self.class_category + 1]
-        # print("Quintile min: ", quintile_min, "quintile max: ", quintile_max)
-
-        y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
-
-        # Reshape tensors to (batch_size, n*m, 1) to facilitate cosine similarity element-wise
+    
+        # Move tensors to the same device
+        y_pred_tensor = y_pred.clone().detach().to(device)
+        y = y.to(device)
+    
+        # Reshape tensors
         batch_size, channels, n, m = y_pred_tensor.shape
         y_pred_tensor = y_pred_tensor.permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
         y = torch.unsqueeze(y, 0).permute(0, 2, 3, 1).reshape(batch_size, n * m, channels)
-
-        # Get depth mask for only depths in quintile
+    
+        # Get depth mask
         depth_mask = (y_pred_tensor >= quintile_min) & (y_pred_tensor <= quintile_max)
-        # Get mask so that only preds in the same quintile as y are considered
-        # y_mask = (y >= quintile_min) & (y <= quintile_max)
-        # valid_mask = depth_mask & y_mask  # Only keep pixels where both conditions are met
-        valid_mask = depth_mask
-
-        # mask_np = valid_mask.squeeze()
-        # mask_np = mask_np.view(n, m)
-        # mask_np = mask_np.cpu().numpy()
-        # print("Mask Shape: ", mask_np.shape)
-        # plt.imshow(mask_np, cmap='gray')  # Use grayscale for binary masks
-        # plt.colorbar()  # Optional: Shows color scale
-        # plt.title("Mask Visualization")
-        # plt.axis("off")  # Remove axes for a clean look
-        # plt.show()
-
-        y_pred_tensor = torch.squeeze(y_pred_tensor) # remove batch and channel dimensions
+    
+        # Remove batch and channel dimensions
+        y_pred_tensor = torch.squeeze(y_pred_tensor)
         y = torch.squeeze(y)
-
-        y_pred_filtered = y_pred_tensor[valid_mask.squeeze()]
-        y_filtered = y[valid_mask.squeeze()]
-        
-        y_filtered = torch.clamp(y_filtered, min=1e-6) # to avoid division by zero erros, but i dont think there will be any
-
-        difference = abs((y_pred_filtered - y_filtered)/y_filtered)
-        difference = torch.clamp(difference, 0, 1) # clamp between 0 and 1
+    
+        # Apply the mask
+        y_pred_filtered = y_pred_tensor[depth_mask.squeeze()]
+        y_filtered = y[depth_mask.squeeze()]
+    
+        # Avoid division by zero
+        y_filtered = torch.clamp(y_filtered, min=1e-6)
+    
+        # Compute difference
+        difference = abs((y_pred_filtered - y_filtered) / y_filtered)
+        difference = torch.clamp(difference, 0, 1)
+    
         mean_dif = torch.mean(difference)
+        
+        if torch.isnan(mean_dif).any():  # Check if mean_dif is NaN
+            mean_dif = torch.tensor(1.0, device=mean_dif.device)
+    
+        return (1 - mean_dif).item()  # Convert tensor to Python float
 
-        # mae_per_pixel = torch.abs(y_filtered - y_pred_filtered)  # Element-wise MAE
-
-        # return 1 - the mean diff to get the similarity to the baseline
-
-        return 1 - mean_dif
 
     def get_y_pred(self, model, x_input, y):
-        y_pred, _ = model.predict(x_input)
+        y_pred, _ = model.model(x_input)
         y_pred = y_pred[0]
         # y_pred = torch.from_numpy(y_pred)
-        # y_pred = F.softmax(y_pred, dim = 1)
+        y_pred = F.softmax(y_pred, dim = 1).cpu()
 
         # checking
         # reshape predictions and flatten
@@ -434,7 +422,7 @@ class IROF(Metric[List[float]]):
         y_pred = filtered_pred[class_category_mask]
 
         # print("y_pred just masked:", y_pred_reshaped[torch.arange(y.shape[0]), class_category_mask])
-        # y_pred = y_pred.cpu().numpy()
+        y_pred = y_pred.cpu().numpy()
         
         # get average score
         y_pred = np.mean(y_pred)
@@ -467,7 +455,7 @@ class IROF(Metric[List[float]]):
             The evaluation results.
         """
         if self.class_category not in y:
-            print(self.class_name + ' does not exist in this image')
+            # print(self.class_name + ' does not exist in this image')
             return None, None
 
         # Predict on x.        
